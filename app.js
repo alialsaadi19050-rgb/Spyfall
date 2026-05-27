@@ -25,25 +25,56 @@ const GAME_MODES = [
 
 // Location names are fetched from the DB at game start (see fetchAllLocations)
 
+// Player seat colours — deterministic by index 0–7
+const SEAT_COLORS = ["#FF4757","#2ED573","#1E90FF","#FFA502","#FF6EB4","#00DDFF","#A29BFE","#FDCB6E"];
+
+// ================================================================
+// SOUND & HAPTICS
+// ================================================================
+let _audioCtx = null;
+function _ac() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+function _tone(freq, dur, type = "sine", vol = 0.3) {
+  try {
+    const ctx = _ac(), osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(_) {}
+}
+function playTick()   { _tone(900, 0.04, "square", 0.12); }
+function playSting()  {
+  _tone(523, 0.18, "sine", 0.35);
+  setTimeout(() => _tone(415, 0.18, "sine", 0.35), 190);
+  setTimeout(() => _tone(311, 0.45, "sine", 0.45), 380);
+}
+function playAccuse() { _tone(280, 0.28, "sawtooth", 0.18); }
+function haptic(p)    { try { navigator.vibrate?.(p); } catch(_) {} }
+
 // ================================================================
 // STATE
 // ================================================================
 const S = {
-  sb:            null,    // Supabase client
-  uid:           null,    // auth.uid() for this device
-  room:          null,    // rooms row (minus room_secrets)
-  me:            null,    // my players row
-  players:       [],      // all players in the room
-  secret:        null,    // my player_secrets row
-  isHost:        false,
-  timerInterval: null,
-  timerEndsAt:   null,    // Date — when timer hits 0 (null when paused)
-  channel:       null,    // realtime channel
+  sb:               null,
+  uid:              null,
+  room:             null,
+  me:               null,
+  players:          [],
+  secret:           null,
+  isHost:           false,
+  timerInterval:    null,
+  timerEndsAt:      null,
+  channel:          null,
+  heartbeatInterval:null,
   crossedLocs:      new Set(),
-  allLocationNames: [],   // all location names fetched from DB for cheat sheet
-  guessSelected:    null, // location name chosen in guess modal
-  accuseSelected:null,    // player id chosen in accuse modal
-  revealShown:   false,   // whether the role card is flipped
+  allLocationNames: [],
+  guessSelected:    null,
+  accuseSelected:   null,
+  revealShown:      false,
 };
 
 // ================================================================
@@ -101,6 +132,13 @@ async function boot() {
   }
   S.uid = (await S.sb.auth.getUser()).data.user.id;
 
+  // Auto-fill room code from shareable link (?room=ABCD)
+  const urlCode = new URLSearchParams(location.search).get("room");
+  if (urlCode) {
+    const jc = $("#join-code");
+    if (jc) { jc.value = urlCode.toUpperCase().slice(0,4); jc.dispatchEvent(new Event("input")); }
+  }
+
   // Restore room from localStorage if we were previously in one
   const saved = localStorage.getItem("dd_room_id");
   if (saved) {
@@ -112,6 +150,11 @@ async function boot() {
     }
     hideLoading();
   }
+
+  // Heartbeat — keeps last_seen_at fresh for disconnect detection
+  S.heartbeatInterval = setInterval(async () => {
+    if (S.me && S.room) await S.sb.rpc("player_heartbeat", { p_room_id: S.room.id });
+  }, 20000);
 
   bindHome();
 }
@@ -249,6 +292,7 @@ async function leaveRoom() {
   }
   S.room = null; S.me = null; S.players = []; S.secret = null; S.isHost = false;
   S.crossedLocs = new Set(); S.allLocationNames = [];
+  clearInterval(S.heartbeatInterval); S.heartbeatInterval = null;
   localStorage.removeItem("dd_room_id");
   showScreen("home");
 }
@@ -391,10 +435,12 @@ function updateTimerFromRoom(room) {
   const fill   = $("#timer-fill");
   const timerEl = $("#timer");
 
+  const maxSecs = room.round_duration ?? 480;
+
   if (room.is_timer_paused) {
-    const rem = room.timer_paused_remaining ?? 480;
+    const rem = room.timer_paused_remaining ?? maxSecs;
     $("#timer-display").textContent = fmtTime(rem);
-    if (fill) fill.style.width = `${(rem / 480) * 100}%`;
+    if (fill) fill.style.width = `${(rem / maxSecs) * 100}%`;
     timerEl?.classList.remove("is-warn", "is-critical");
     updateTimerPlayBtn(false);
     return;
@@ -404,14 +450,23 @@ function updateTimerFromRoom(room) {
   S.timerEndsAt = new Date(room.timer_ends_at);
   updateTimerPlayBtn(true);
 
+  let _lastTickSec = -1;
   S.timerInterval = setInterval(() => {
     const rem = Math.max(0, Math.floor((S.timerEndsAt - Date.now()) / 1000));
     $("#timer-display").textContent = fmtTime(rem);
-    if (fill) fill.style.width = `${(rem / 480) * 100}%`;
+    if (fill) fill.style.width = `${(rem / maxSecs) * 100}%`;
     timerEl?.classList.toggle("is-warn",     rem <= 120 && rem > 30);
     timerEl?.classList.toggle("is-critical", rem <= 30);
+    // Tick every second in the last 60s
+    if (rem <= 60 && rem > 0 && rem !== _lastTickSec) {
+      _lastTickSec = rem;
+      playTick();
+      if (rem <= 10) haptic(30);
+    }
     if (rem === 0) {
       stopTimer();
+      playSting();
+      haptic([100, 50, 100, 50, 200]);
       toast("Time's up · Call an accusation");
     }
   }, 500);
@@ -438,7 +493,8 @@ async function startGame() {
   showLoading("BRIEFING OPERATIVES…");
   const { error } = await S.sb.rpc("start_game", { p_room_id: S.room.id });
   hideLoading();
-  if (error) toast("Error: " + error.message);
+  if (error) { toast("Error: " + error.message); return; }
+  haptic([50, 30, 50]);
 }
 
 async function timerToggle() {
@@ -454,8 +510,10 @@ async function timerReset() {
 }
 
 async function callAccusation(targetId) {
+  playAccuse();
+  haptic([80, 40, 80]);
   const { error } = await S.sb.rpc("accuse_player", {
-    p_room_id:   S.room.id,
+    p_room_id:    S.room.id,
     p_accused_id: targetId
   });
   if (error) toast("Error: " + error.message);
@@ -464,6 +522,14 @@ async function callAccusation(targetId) {
 async function cancelAccusation() {
   await S.sb.rpc("cancel_accusation", { p_room_id: S.room.id });
   closeOverlay("overlay-accuse");
+}
+
+async function castVote(vote) {
+  haptic(50);
+  const { data, error } = await S.sb.rpc("cast_vote", { p_room_id: S.room.id, p_vote: vote });
+  if (error) { toast("Error: " + error.message); return; }
+  if (data?.toast) toast(data.toast);
+  // Realtime fires handleRoomUpdate → re-renders voting UI or ends game
 }
 
 async function confirmElimination() {
@@ -504,8 +570,86 @@ async function startNextRound() {
 function renderLobby() {
   $("#lobby-code").textContent = S.room.room_code;
   renderModeGrid();
+  renderSettings();
   renderLobbyPlayerList();
+  renderScore();
   applyHostVisibility();
+}
+
+function renderScore() {
+  const civ = S.room.civilian_wins ?? 0;
+  const spy = S.room.spy_wins ?? 0;
+  let el = $("#lobby-score");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "lobby-score";
+    el.className = "lobby-score";
+    $("#lobby-player-list")?.parentElement?.appendChild(el);
+  }
+  el.innerHTML = (civ + spy) === 0 ? "" :
+    `<span class="score-label">Score</span>
+     <span class="score-civ">Civilians <b>${civ}</b></span>
+     <span class="score-sep">·</span>
+     <span class="score-spy">Spy <b>${spy}</b></span>`;
+}
+
+function renderSettings() {
+  let panel = $("#settings-panel");
+  if (!panel) {
+    panel = document.createElement("div");
+    panel.id = "settings-panel";
+    panel.className = "panel";
+    $("#mode-panel")?.insertAdjacentElement("afterend", panel);
+  }
+
+  const dur = S.room.round_duration ?? 480;
+  const spyN = S.room.spy_count ?? 1;
+  const durations = [300, 480, 600, 900];
+  const durLabels  = { 300:"5 min", 480:"8 min", 600:"10 min", 900:"15 min" };
+
+  panel.innerHTML = `
+    <div class="panel-head">
+      <span class="eyebrow red">▸ Round Settings</span>
+      <span class="meta" id="settings-meta">${S.isHost ? "Host controls" : `${durLabels[dur] || "8 min"} · ${spyN} spy`}</span>
+    </div>
+    <div class="settings-grid">
+      <div class="setting-group">
+        <div class="setting-label">Timer</div>
+        <div class="setting-options" id="dur-options">
+          ${durations.map(d => `
+            <button class="setting-btn ${d === dur ? "is-selected" : ""}" data-dur="${d}" ${!S.isHost ? "disabled" : ""}>${durLabels[d]}</button>
+          `).join("")}
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">Spies</div>
+        <div class="setting-options" id="spy-options">
+          <button class="setting-btn ${spyN === 1 ? "is-selected" : ""}" data-spy="1" ${!S.isHost ? "disabled" : ""}>1 Spy</button>
+          <button class="setting-btn ${spyN === 2 ? "is-selected" : ""}" data-spy="2" ${!S.isHost ? "disabled" : ""}>2 Spies</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (!S.isHost) return;
+
+  $("#dur-options")?.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-dur]");
+    if (!btn) return;
+    const d = parseInt(btn.dataset.dur);
+    await S.sb.from("rooms").update({ round_duration: d }).eq("id", S.room.id);
+    S.room.round_duration = d;
+    renderSettings();
+  });
+
+  $("#spy-options")?.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-spy]");
+    if (!btn) return;
+    const n = parseInt(btn.dataset.spy);
+    await S.sb.from("rooms").update({ spy_count: n }).eq("id", S.room.id);
+    S.room.spy_count = n;
+    renderSettings();
+  });
 }
 
 function renderModeGrid() {
@@ -536,17 +680,26 @@ function renderModeGrid() {
   };
 }
 
+function isOffline(p) {
+  if (!p.last_seen_at) return false;
+  return (Date.now() - new Date(p.last_seen_at).getTime()) > 40000;
+}
+
 function renderLobbyPlayerList() {
   const list = $("#lobby-player-list");
-  list.innerHTML = S.players.map((p, i) => `
+  list.innerHTML = S.players.map((p, i) => {
+    const color = SEAT_COLORS[i % SEAT_COLORS.length];
+    const offline = isOffline(p);
+    return `
     <div class="lobby-player-row">
+      <span class="seat-color" style="background:${color}"></span>
       <span class="seat">S${String(i + 1).padStart(2,"0")}</span>
-      <span class="name">${esc(p.nickname)}</span>
+      <span class="name ${offline ? "is-offline" : ""}">${esc(p.nickname)}${offline ? " <span class='offline-tag'>OFFLINE</span>" : ""}</span>
       <span class="badge ${p.is_host ? "host" : ""} ${p.id === S.me?.id ? "you" : ""}">
         ${p.is_host ? "HOST" : p.id === S.me?.id ? "YOU" : "AGENT"}
       </span>
     </div>
-  `).join("");
+  `}).join("");
 
   const n = S.players.length;
   const ready = n >= 4;
@@ -583,20 +736,23 @@ function renderPlayerGrid() {
   grid.innerHTML = S.players.map((p, i) => {
     const isMe      = p.id === S.me?.id;
     const isAccused = p.id === accusedId;
+    const offline   = isOffline(p);
+    const color     = SEAT_COLORS[i % SEAT_COLORS.length];
     const cls = [
       p.is_eliminated ? "is-eliminated" : "",
       isMe            ? "is-you"        : "",
       isAccused       ? "is-accused"    : "",
+      offline         ? "is-offline"    : "",
     ].join(" ");
 
     return `
-      <div class="pcard ${cls}">
+      <div class="pcard ${cls}" style="--player-color:${color}">
         <div class="pcard-head">
-          <span class="pcard-seat">S${String(i + 1).padStart(2,"0")}</span>
-          <span class="pcard-status"><span class="dot"></span>${isMe ? "YOU" : "ACTIVE"}</span>
+          <span class="pcard-seat" style="color:${color}">S${String(i + 1).padStart(2,"0")}</span>
+          <span class="pcard-status"><span class="dot" style="background:${offline ? "#888" : color}"></span>${isMe ? "YOU" : offline ? "OFFLINE" : "ACTIVE"}</span>
         </div>
         <div class="pcard-name">${esc(p.nickname)}</div>
-        <div class="pcard-foot">${isAccused ? "⚠ ACCUSED" : p.is_eliminated ? "" : "In field"}</div>
+        <div class="pcard-foot">${isAccused ? "⚠ ACCUSED" : p.is_eliminated ? "✕ OUT" : offline ? "⚡ Reconnecting…" : "In field"}</div>
       </div>
     `;
   }).join("");
@@ -646,8 +802,10 @@ function renderRoleCard() {
   const content = $("#reveal-content");
   if (!card) return;
 
+  const wasHidden = !card.classList.contains("is-revealed");
   card.classList.toggle("is-revealed", S.revealShown);
   $("#reveal-toggle").textContent = S.revealShown ? "Hide · pass device" : "Tap to reveal identity";
+  if (S.revealShown && wasHidden) haptic([40, 20, 80]);
 
   if (!S.revealShown || !S.secret) { content.innerHTML = ""; return; }
 
@@ -769,6 +927,14 @@ function renderAccuseVoting() {
   const accused = S.players.find(p => p.id === S.room.accused_player_id);
   if (!accused) return;
 
+  const votes     = S.room.accusation_votes || {};
+  const myVote    = votes[S.me?.id];           // true | false | undefined
+  const yesCount  = Object.values(votes).filter(v => v === true).length;
+  const noCount   = Object.values(votes).filter(v => v === false).length;
+  const eligible  = S.players.filter(p => !p.is_eliminated && p.id !== accused.id);
+  const pending   = eligible.length - Object.keys(votes).length;
+  const iAccused  = S.me?.id === accused.id;
+
   const body = $("#accuse-body");
   const foot = $("#accuse-foot");
 
@@ -776,21 +942,45 @@ function renderAccuseVoting() {
     <div class="accusation-banner">
       <div class="label">▸ Active Accusation</div>
       <div class="accused-name">${esc(accused.nickname)}</div>
-      <div class="sub">Is this operative the spy?</div>
-      ${S.isHost ? `
-      <div class="accuse-host-actions">
-        <button id="btn-confirm-elim" class="btn btn-danger">⚑ Confirm Eliminate</button>
-        <button id="btn-cancel-accuse" class="btn btn-ghost">✕ Cancel</button>
-      </div>` : `
-      <div class="sub" style="margin-top:14px;color:var(--ink-faint);">Waiting for host decision…</div>
+      <div class="sub">Majority decides · all active players vote</div>
+
+      <div class="vote-tally">
+        <div class="tally-cell tally-yes">
+          <span class="tally-num">${yesCount}</span>
+          <span class="tally-label">GUILTY</span>
+        </div>
+        <div class="tally-cell tally-no">
+          <span class="tally-num">${noCount}</span>
+          <span class="tally-label">INNOCENT</span>
+        </div>
+        <div class="tally-cell tally-pending">
+          <span class="tally-num">${pending}</span>
+          <span class="tally-label">PENDING</span>
+        </div>
+      </div>
+
+      ${iAccused ? `
+        <div class="vote-waiting">You are accused — waiting for the verdict…</div>
+      ` : myVote === undefined ? `
+        <div class="vote-buttons">
+          <button id="btn-vote-guilty" class="btn btn-danger">⚑ Guilty</button>
+          <button id="btn-vote-innocent" class="btn btn-ghost">✓ Innocent</button>
+        </div>
+      ` : `
+        <div class="vote-cast">You voted: <strong>${myVote ? "GUILTY" : "INNOCENT"}</strong></div>
       `}
+
+      ${S.isHost ? `<button id="btn-cancel-accuse" class="btn btn-ghost btn-sm" style="margin-top:14px;">✕ Abort accusation</button>` : ""}
     </div>
   `;
   foot.innerHTML = "";
 
+  if (!iAccused && myVote === undefined) {
+    $("#btn-vote-guilty")?.addEventListener("click", () => castVote(true));
+    $("#btn-vote-innocent")?.addEventListener("click", () => castVote(false));
+  }
   if (S.isHost) {
-    $("#btn-confirm-elim").onclick = confirmElimination;
-    $("#btn-cancel-accuse").onclick = cancelAccusation;
+    $("#btn-cancel-accuse")?.addEventListener("click", cancelAccusation);
   }
 }
 
@@ -870,6 +1060,8 @@ function showResult(result) {
       </div>
     </div>
   `;
+  playSting();
+  haptic([100, 60, 100, 60, 300]);
   applyHostVisibility();
   openOverlay("overlay-result");
 }
@@ -906,7 +1098,9 @@ function bind() {
   // Lobby
   document.addEventListener("click", e => {
     if (e.target.matches("#copy-code")) {
-      navigator.clipboard?.writeText(S.room?.room_code || "").then(() => toast("Room code copied"));
+      const code = S.room?.room_code || "";
+      const link = `${location.origin}${location.pathname}?room=${code}`;
+      navigator.clipboard?.writeText(link).then(() => toast("Join link copied!"));
     }
     if (e.target.matches("#leave-lobby"))  leaveRoom();
     if (e.target.matches("#start-btn"))    startGame();

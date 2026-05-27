@@ -1000,3 +1000,88 @@ h1 .accent { color: var(--crimson); font-style: italic; }
   .pcard { min-height: 120px; }
   .pcard-name { font-size: 16px; }
 }
+
+/* =========================================================
+   NEW FEATURES — score, settings, voting, colors, disconnect
+   ========================================================= */
+
+/* Score display in lobby */
+.lobby-score {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: .12em;
+}
+.lobby-score:empty { display: none; }
+.score-label { color: var(--ink-faint); text-transform: uppercase; }
+.score-civ   { color: var(--signal); font-weight: 600; }
+.score-spy   { color: var(--crimson); font-weight: 600; }
+.score-sep   { color: var(--ink-ghost); }
+
+/* Settings panel */
+.settings-grid { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
+.setting-group { display: flex; flex-direction: column; gap: 8px; }
+.setting-label { font-size: 11px; letter-spacing: .14em; color: var(--ink-faint); text-transform: uppercase; font-family: var(--font-mono); }
+.setting-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.setting-btn {
+  padding: 6px 14px;
+  background: var(--bg-3); border: 1px solid var(--hairline-2);
+  color: var(--ink-mute); font-size: 12px; font-family: var(--font-mono);
+  cursor: pointer; border-radius: var(--r-sm); transition: all .15s;
+}
+.setting-btn:hover:not(:disabled) { border-color: var(--hairline); color: var(--ink); }
+.setting-btn.is-selected { background: var(--crimson-3); border-color: var(--crimson); color: var(--ink); }
+.setting-btn:disabled { opacity: .45; cursor: default; }
+
+/* Seat color dot in lobby */
+.seat-color {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-right: 2px;
+}
+.lobby-player-row { display: flex; align-items: center; gap: 8px; }
+
+/* Offline state */
+.is-offline .name, .name.is-offline { color: var(--ink-faint); }
+.offline-tag {
+  font-size: 9px; letter-spacing: .12em; background: var(--bg-3);
+  color: var(--ink-faint); padding: 1px 5px; border-radius: 2px; margin-left: 6px;
+  font-family: var(--font-mono);
+}
+.pcard.is-offline { opacity: .55; border-color: var(--hairline) !important; }
+
+/* Vote tally */
+.vote-tally {
+  display: flex; gap: 8px; justify-content: center; margin: 18px 0 14px;
+}
+.tally-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 18px;
+  background: var(--bg-2); border: 1px solid var(--hairline);
+  border-radius: var(--r-sm); min-width: 72px;
+}
+.tally-num { font-size: 28px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+.tally-label { font-size: 9px; letter-spacing: .18em; color: var(--ink-faint); font-family: var(--font-mono); }
+.tally-yes  { border-color: var(--crimson-3); }
+.tally-yes  .tally-num { color: var(--crimson); }
+.tally-no   { border-color: var(--hairline-2); }
+.tally-no   .tally-num { color: var(--signal); }
+.tally-pending .tally-num { color: var(--ink-mute); }
+
+/* Vote action buttons */
+.vote-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.vote-buttons .btn { flex: 1; max-width: 160px; }
+.vote-cast {
+  text-align: center; margin-top: 10px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-mute);
+  letter-spacing: .12em;
+}
+.vote-waiting {
+  text-align: center; margin-top: 14px;
+  font-size: 12px; color: var(--ink-faint); letter-spacing: .1em;
+}
+
+.btn-sm { padding: 6px 14px; font-size: 11px; }
