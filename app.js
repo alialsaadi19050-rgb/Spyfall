@@ -330,6 +330,9 @@ function subscribeToRoom() {
       S.secret = secret;
       S.revealShown = false;
       renderRoleCard();
+      // Show/hide Declare Location button now that we know the role
+      const guessBtn = $("#open-guess");
+      if (guessBtn) guessBtn.style.display = secret.role === "spy" ? "" : "none";
     })
     .subscribe();
 }
@@ -565,6 +568,11 @@ function renderGame() {
   renderPlayerGrid();
   fetchAllLocations().then(() => renderCheatSheet());
   applyHostVisibility();
+  // Show/hide the Declare Location button based on whether this player is the spy
+  // (secret may arrive slightly after renderGame; also called from handleRoomUpdate)
+  const isSpy = S.secret?.role === "spy";
+  const guessBtn = $("#open-guess");
+  if (guessBtn) guessBtn.style.display = isSpy ? "" : "none";
   updateTimerFromRoom(S.room);
 }
 
@@ -790,20 +798,29 @@ function renderAccuseVoting() {
 // SPY GUESS MODAL
 // ================================================================
 async function openGuessModal() {
+  // Only the spy can declare a location
+  if (S.secret?.role !== "spy") {
+    toast("Only the spy can declare a location");
+    return;
+  }
+
   S.guessSelected = null;
 
   let locations;
 
-  if (S.room.selected_mode === "decoy" && S.secret?.role === "spy" && S.secret?.decoy_locations) {
+  if (S.room.selected_mode === "decoy" && S.secret.decoy_locations) {
     // Decoy mode: spy already has 4 locations on their card (1 real + 3 fakes)
     locations = S.secret.decoy_locations;
   } else {
     // All other modes: fetch 15 locations from server (real location + 14 random)
-    // The RPC is SECURITY DEFINER and only accessible to the spy
     showLoading("LOADING LOCATIONS…");
     const { data, error } = await S.sb.rpc("get_spy_guess_locations", { p_room_id: S.room.id });
     hideLoading();
     if (error) { toast("Error: " + error.message); return; }
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      toast("Could not load locations — try again");
+      return;
+    }
     locations = data;
   }
 
