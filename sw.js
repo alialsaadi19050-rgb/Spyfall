@@ -1,4 +1,4 @@
-const CACHE = "dead-drop-v1";
+﻿const CACHE = "dead-drop-v1779900778";
 const ASSETS = [
   "/Spyfall/",
   "/Spyfall/index.html",

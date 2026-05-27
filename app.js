@@ -602,38 +602,46 @@ function renderSettings() {
     $("#mode-panel")?.insertAdjacentElement("afterend", panel);
   }
 
-  const dur = S.room.round_duration ?? 480;
+  const dur  = S.room.round_duration ?? 480;
   const spyN = S.room.spy_count ?? 1;
-  const durations = [300, 480, 600, 900];
-  const durLabels  = { 300:"5 min", 480:"8 min", 600:"10 min", 900:"15 min" };
+
+  const timerCards = [
+    { val: 300, code: "T01", name: "5 Minutes",  desc: "Fast pace · High pressure on everyone." },
+    { val: 480, code: "T02", name: "8 Minutes",  desc: "Standard mission length. Balanced." },
+    { val: 600, code: "T03", name: "10 Minutes", desc: "Extended interrogation time." },
+    { val: 900, code: "T04", name: "15 Minutes", desc: "Long operation · Deep cover play." },
+  ];
+
+  const spyCards = [
+    { val: 1, code: "S01", name: "1 Spy",   desc: "One infiltrator. Classic deduction." },
+    { val: 2, code: "S02", name: "2 Spies", desc: "Two operatives. Double the deception." },
+  ];
+
+  const cardHtml = (cards, dataAttr, selectedVal) => cards.map(c => `
+    <button class="mode-card ${c.val === selectedVal ? "is-selected" : ""}"
+            data-${dataAttr}="${c.val}"
+            ${!S.isHost ? "disabled" : ""}>
+      <span class="mode-check"></span>
+      <span class="mode-num">${c.code}</span>
+      <span class="mode-name">${c.name}</span>
+      <span class="mode-desc">${c.desc}</span>
+    </button>
+  `).join("");
 
   panel.innerHTML = `
     <div class="panel-head">
       <span class="eyebrow red">▸ Round Settings</span>
-      <span class="meta" id="settings-meta">${S.isHost ? "Host controls" : `${durLabels[dur] || "8 min"} · ${spyN} spy`}</span>
+      <span class="meta">${S.isHost ? "Host controls" : ""}</span>
     </div>
-    <div class="settings-grid">
-      <div class="setting-group">
-        <div class="setting-label">Timer</div>
-        <div class="setting-options" id="dur-options">
-          ${durations.map(d => `
-            <button class="setting-btn ${d === dur ? "is-selected" : ""}" data-dur="${d}" ${!S.isHost ? "disabled" : ""}>${durLabels[d]}</button>
-          `).join("")}
-        </div>
-      </div>
-      <div class="setting-group">
-        <div class="setting-label">Spies</div>
-        <div class="setting-options" id="spy-options">
-          <button class="setting-btn ${spyN === 1 ? "is-selected" : ""}" data-spy="1" ${!S.isHost ? "disabled" : ""}>1 Spy</button>
-          <button class="setting-btn ${spyN === 2 ? "is-selected" : ""}" data-spy="2" ${!S.isHost ? "disabled" : ""}>2 Spies</button>
-        </div>
-      </div>
-    </div>
+    <div class="settings-section-label">Timer</div>
+    <div class="mode-grid" id="dur-grid">${cardHtml(timerCards, "dur", dur)}</div>
+    <div class="settings-section-label" style="margin-top:1px;">Spies</div>
+    <div class="mode-grid mode-grid-half" id="spy-grid">${cardHtml(spyCards, "spy", spyN)}</div>
   `;
 
   if (!S.isHost) return;
 
-  $("#dur-options")?.addEventListener("click", async (e) => {
+  $("#dur-grid")?.addEventListener("click", async (e) => {
     const btn = e.target.closest("[data-dur]");
     if (!btn) return;
     const d = parseInt(btn.dataset.dur);
@@ -642,7 +650,7 @@ function renderSettings() {
     renderSettings();
   });
 
-  $("#spy-options")?.addEventListener("click", async (e) => {
+  $("#spy-grid")?.addEventListener("click", async (e) => {
     const btn = e.target.closest("[data-spy]");
     if (!btn) return;
     const n = parseInt(btn.dataset.spy);

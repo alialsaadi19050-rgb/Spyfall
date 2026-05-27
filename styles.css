@@ -1022,20 +1022,21 @@ h1 .accent { color: var(--crimson); font-style: italic; }
 .score-spy   { color: var(--crimson); font-weight: 600; }
 .score-sep   { color: var(--ink-ghost); }
 
-/* Settings panel */
-.settings-grid { display: flex; flex-direction: column; gap: 14px; padding: 4px 0; }
-.setting-group { display: flex; flex-direction: column; gap: 8px; }
-.setting-label { font-size: 11px; letter-spacing: .14em; color: var(--ink-faint); text-transform: uppercase; font-family: var(--font-mono); }
-.setting-options { display: flex; gap: 8px; flex-wrap: wrap; }
-.setting-btn {
-  padding: 6px 14px;
-  background: var(--bg-3); border: 1px solid var(--hairline-2);
-  color: var(--ink-mute); font-size: 12px; font-family: var(--font-mono);
-  cursor: pointer; border-radius: var(--r-sm); transition: all .15s;
+/* Settings panel — uses .mode-grid / .mode-card, just needs section labels */
+.settings-section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 10px 18px 6px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--hairline);
 }
-.setting-btn:hover:not(:disabled) { border-color: var(--hairline); color: var(--ink); }
-.setting-btn.is-selected { background: var(--crimson-3); border-color: var(--crimson); color: var(--ink); }
-.setting-btn:disabled { opacity: .45; cursor: default; }
+/* 2-column grid that only fills half the width for the 2-card spy row */
+.mode-grid-half {
+  grid-template-columns: repeat(2, 1fr);
+}
 
 /* Seat color dot in lobby */
 .seat-color {
