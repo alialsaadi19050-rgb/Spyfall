@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS player_secrets (
   player_id       UUID  PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
   role            TEXT  NOT NULL CHECK (role IN ('spy','double_agent','civilian')),
   location_name   TEXT,   -- NULL for classic/double spy
+  job             TEXT,   -- role at the location (e.g. "Captain"); NULL for spy
   condition       TEXT,   -- condition mode civilians only
   decoy_locations JSONB   -- decoy mode spy: TEXT[4] shuffled, includes real location
 );
@@ -219,7 +220,7 @@ BEGIN
 END;
 $$;
 
--- START GAME: shuffles players, assigns roles, writes secrets server-side
+-- START GAME: shuffles players, assigns roles + jobs, writes secrets server-side
 -- This is the critical anti-cheat function — roles never pass through client logic
 CREATE OR REPLACE FUNCTION start_game(p_room_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -228,7 +229,10 @@ DECLARE
   v_loc_id      INTEGER;
   v_loc_name    TEXT;
   v_loc_conds   JSONB;
+  v_loc_roles   JSONB;
   v_cond_count  INTEGER;
+  v_roles_arr   TEXT[];
+  v_role_idx    INTEGER := 0;
   v_players     UUID[];
   v_n           INTEGER;
   v_spy_id      UUID;
@@ -237,6 +241,7 @@ DECLARE
   v_decoys      TEXT[];
   i             INTEGER;
   pid           UUID;
+  v_job         TEXT;
 BEGIN
   IF NOT is_room_host(p_room_id) THEN
     RAISE EXCEPTION 'Only the host can start the game';
@@ -244,12 +249,17 @@ BEGIN
 
   SELECT selected_mode INTO v_mode FROM rooms WHERE id = p_room_id;
 
-  -- Pick random location
-  SELECT id, name, conditions
-  INTO v_loc_id, v_loc_name, v_loc_conds
+  -- Pick random location (fetch roles too)
+  SELECT id, name, conditions, roles
+  INTO v_loc_id, v_loc_name, v_loc_conds, v_loc_roles
   FROM locations ORDER BY random() LIMIT 1;
 
   v_cond_count := jsonb_array_length(v_loc_conds);
+
+  -- Shuffle the jobs array so each player gets a different one
+  SELECT ARRAY(
+    SELECT jsonb_array_elements_text(v_loc_roles) ORDER BY random()
+  ) INTO v_roles_arr;
 
   -- Randomly ordered player list
   SELECT ARRAY(SELECT id FROM players WHERE room_id = p_room_id ORDER BY random())
@@ -275,7 +285,6 @@ BEGIN
   -- Build decoy pool for Decoy mode
   SELECT ARRAY(SELECT name FROM locations WHERE name <> v_loc_name ORDER BY random() LIMIT 3)
   INTO v_other_locs;
-  -- Shuffle: real location inserted at a random position among the 3 decoys
   SELECT ARRAY(SELECT unnest(ARRAY[v_loc_name] || v_other_locs) ORDER BY random())
   INTO v_decoys;
 
@@ -284,35 +293,39 @@ BEGIN
     pid := v_players[i];
 
     IF pid = v_spy_id THEN
+      -- Spy: no job, no location (except decoy mode)
       IF v_mode = 'decoy' THEN
-        -- Spy sees 4 locations (real hidden among 3 fakes); location_name stores the true answer
         INSERT INTO player_secrets (player_id, role, location_name, decoy_locations)
         VALUES (pid, 'spy', v_loc_name, to_jsonb(v_decoys));
       ELSE
-        -- Classic / double / condition spy: no location hint
         INSERT INTO player_secrets (player_id, role)
         VALUES (pid, 'spy');
       END IF;
 
     ELSIF v_mode = 'double' AND pid = v_da_id THEN
-      -- Double Agent knows the location but must protect the spy
-      INSERT INTO player_secrets (player_id, role, location_name)
-      VALUES (pid, 'double_agent', v_loc_name);
+      -- Double Agent: gets a job so they blend in with civilians
+      v_job := v_roles_arr[(v_role_idx % array_length(v_roles_arr, 1)) + 1];
+      v_role_idx := v_role_idx + 1;
+      INSERT INTO player_secrets (player_id, role, location_name, job)
+      VALUES (pid, 'double_agent', v_loc_name, v_job);
 
     ELSE
-      -- Civilian
+      -- Civilian: unique job from the shuffled roles list
+      v_job := v_roles_arr[(v_role_idx % array_length(v_roles_arr, 1)) + 1];
+      v_role_idx := v_role_idx + 1;
       IF v_mode = 'condition' THEN
-        INSERT INTO player_secrets (player_id, role, location_name, condition)
+        INSERT INTO player_secrets (player_id, role, location_name, condition, job)
         VALUES (pid, 'civilian', v_loc_name,
-          v_loc_conds->>(floor(random() * v_cond_count))::int);
+          v_loc_conds->>(floor(random() * v_cond_count))::int,
+          v_job);
       ELSE
-        INSERT INTO player_secrets (player_id, role, location_name)
-        VALUES (pid, 'civilian', v_loc_name);
+        INSERT INTO player_secrets (player_id, role, location_name, job)
+        VALUES (pid, 'civilian', v_loc_name, v_job);
       END IF;
     END IF;
   END LOOP;
 
-  -- Transition room to playing; pause timer reset at 8 min so host presses play
+  -- Transition room to playing; timer paused at 8:00 until host presses play
   UPDATE rooms SET
     game_state             = 'playing',
     timer_ends_at          = NULL,

@@ -643,7 +643,7 @@ function renderRoleCard() {
 
   if (!S.revealShown || !S.secret) { content.innerHTML = ""; return; }
 
-  const { role, location_name, condition, decoy_locations } = S.secret;
+  const { role, location_name, condition, decoy_locations, job } = S.secret;
 
   if (role === "spy") {
     if (S.room.selected_mode === "decoy" && decoy_locations) {
@@ -672,11 +672,16 @@ function renderRoleCard() {
       <div class="role-line">Identity</div>
       <div class="role-value double-agent">DOUBLE AGENT</div>
       <div class="role-sub">You know the location. Act like a civilian — but feed vague answers to protect the hidden spy.</div>
-      <div class="role-meta single">
+      <div class="role-meta">
         <div class="role-meta-cell">
           <span class="k">True Location</span>
           <span class="v">${esc(location_name)}</span>
         </div>
+        ${job ? `
+        <div class="role-meta-cell">
+          <span class="k">Your Cover</span>
+          <span class="v" style="color:var(--signal)">${esc(job)}</span>
+        </div>` : ""}
       </div>
     `;
   } else {
@@ -685,13 +690,18 @@ function renderRoleCard() {
       <div class="role-line">Location</div>
       <div class="role-value">${esc(location_name)}</div>
       <div class="role-sub">Expose the spy without giving too much away. Watch for hesitation.</div>
-      ${condition ? `
-      <div class="role-meta single">
+      <div class="role-meta">
+        ${job ? `
+        <div class="role-meta-cell">
+          <span class="k">Your Role</span>
+          <span class="v" style="color:var(--signal)">${esc(job)}</span>
+        </div>` : ""}
+        ${condition ? `
         <div class="role-meta-cell">
           <span class="k">Secret Condition</span>
-          <span class="v" style="color:var(--signal)">${esc(condition)}</span>
-        </div>
-      </div>` : ""}
+          <span class="v" style="color:var(--amber)">${esc(condition)}</span>
+        </div>` : ""}
+      </div>
     `;
   }
 }
