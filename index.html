@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>DEAD DROP — Multiplayer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== HOME ===================== -->
+  <section id="screen-home" class="screen is-active">
+    <header class="frame">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">
+          <div class="brand-name">DEAD&nbsp;DROP</div>
+          <div class="brand-sub">Classified Field Protocol · v2.0</div>
+        </div>
+      </div>
+      <div class="frame-status">
+        <span class="dot"></span>
+        <span>Secure Channel</span>
+      </div>
+    </header>
+
+    <main class="home-body">
+      <div class="home-hero">
+        <div class="case-tag"><span class="bar"></span><span>Case File 00 · Briefing Room</span></div>
+        <h1>Find the <span class="accent">spy</span><br/>before they find the location.</h1>
+        <p class="home-blurb">Real-time multiplayer · 4–8 operatives · Each on their own device</p>
+      </div>
+
+      <div class="home-panels">
+
+        <!-- Create Room -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="eyebrow red">▸ Deploy as Host</span>
+            <span class="meta">Step 01</span>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label class="field-label" for="create-name">Agent codename</label>
+              <input id="create-name" class="text-input" type="text" placeholder="Enter your codename…" maxlength="18" autocomplete="off" />
+            </div>
+            <button id="create-btn" class="btn btn-primary" disabled>
+              <span>Create Room</span><span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="home-divider"><span>OR</span></div>
+
+        <!-- Join Room -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="eyebrow red">▸ Enter Field</span>
+            <span class="meta">Step 01</span>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label class="field-label" for="join-code">Room code</label>
+              <input id="join-code" class="text-input text-input-code" type="text"
+                placeholder="ABCD" maxlength="4" autocomplete="off"
+                style="text-transform:uppercase;letter-spacing:.3em;font-size:22px;" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="join-name">Agent codename</label>
+              <input id="join-name" class="text-input" type="text" placeholder="Enter your codename…" maxlength="18" autocomplete="off" />
+            </div>
+            <button id="join-btn" class="btn btn-primary" disabled>
+              <span>Join Room</span><span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </section>
+
+  <!-- ===================== LOBBY ===================== -->
+  <section id="screen-lobby" class="screen">
+    <header class="frame">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">
+          <div class="brand-name">DEAD&nbsp;DROP</div>
+          <div class="brand-sub">Briefing Room</div>
+        </div>
+      </div>
+      <div class="room-code-badge">
+        <span class="k">ROOM</span>
+        <span id="lobby-code" class="v">····</span>
+        <button id="copy-code" class="btn-copy" title="Copy code">⎘</button>
+      </div>
+      <button id="leave-lobby" class="btn btn-ghost">← Leave</button>
+    </header>
+
+    <main class="lobby-body">
+
+      <!-- Mode picker (visible + editable only by host) -->
+      <div class="panel" id="mode-panel">
+        <div class="panel-head">
+          <span class="eyebrow red">▸ Operation Parameters</span>
+          <span class="meta" id="mode-panel-meta">Host selects</span>
+        </div>
+        <div id="mode-grid" class="mode-grid"></div>
+      </div>
+
+      <!-- Roster -->
+      <div class="panel roster-panel">
+        <div class="panel-head">
+          <span class="eyebrow red">▸ Field Roster</span>
+          <span id="lobby-count" class="meta">0 / 8</span>
+        </div>
+        <div id="lobby-player-list" class="lobby-player-list"></div>
+        <div class="lobby-footer">
+          <span id="lobby-status" class="mono lobby-status-text">Waiting for operatives…</span>
+          <button id="start-btn" class="btn btn-primary host-only" disabled>
+            Begin Mission →
+          </button>
+        </div>
+      </div>
+
+    </main>
+  </section>
+
+  <!-- ===================== GAME DASHBOARD ===================== -->
+  <section id="screen-game" class="screen">
+    <div class="dashboard">
+
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="room-code-badge small">
+            <span class="k">ROOM</span>
+            <span id="game-room-code" class="v">····</span>
+          </div>
+          <div class="stat">
+            <span class="k">Mode</span>
+            <span id="stat-mode" class="v red">CLASSIC</span>
+          </div>
+          <div class="stat">
+            <span class="k">Players</span>
+            <span id="stat-players" class="v">6/6</span>
+          </div>
+        </div>
+
+        <!-- Timer -->
+        <div id="timer" class="timer">
+          <div id="timer-display" class="timer-display">08:00</div>
+          <div class="timer-controls">
+            <button id="timer-play" class="timer-btn host-only" aria-label="Play/Pause">
+              <svg viewBox="0 0 12 12"><polygon points="3,2 10,6 3,10" fill="currentColor"/></svg>
+            </button>
+            <button id="timer-reset" class="timer-btn host-only" aria-label="Reset">
+              <svg viewBox="0 0 12 12">
+                <path d="M2,6 A4,4 0 1,1 6,10" stroke="currentColor" stroke-width="1.4" fill="none"/>
+                <polygon points="1,4 4,5.5 1,7" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <div class="timer-track"><div id="timer-fill" class="timer-fill" style="width:100%"></div></div>
+        </div>
+
+        <div class="topbar-right">
+          <button id="back-to-lobby" class="btn btn-ghost">← Exit</button>
+        </div>
+      </header>
+
+      <div class="dash-body">
+
+        <!-- Players + actions -->
+        <section class="players-area">
+          <!-- My card button — always at top -->
+          <button id="view-card-btn" class="btn-view-card">
+            <span class="view-card-icon">◆</span>
+            <span>View My Secret Card</span>
+            <span class="view-card-hint">tap to reveal your dossier</span>
+          </button>
+
+          <div class="section-head" style="margin-top:24px;">
+            <div>
+              <span class="eyebrow red">▸ Field Operatives</span>
+              <h2>Player Status</h2>
+            </div>
+            <span class="hint">Cards sealed · tap to accuse</span>
+          </div>
+          <div id="player-grid" class="player-grid"></div>
+
+          <div class="dash-actions">
+            <button id="open-accuse" class="btn">⌖ Accuse Player</button>
+            <button id="open-guess" class="btn">⌬ Declare Location</button>
+          </div>
+        </section>
+
+        <!-- Location cheat sheet -->
+        <aside class="cheat">
+          <details class="cheat-details" open>
+            <summary class="cheat-summary">
+              <span class="cheat-head">
+                <h3>Location Roster</h3>
+                <span class="eyebrow">10 sites</span>
+              </span>
+            </summary>
+            <div id="cheat-list" class="cheat-list"></div>
+            <div class="cheat-note">
+              <strong>// FIELD TIP</strong><br/>
+              Tap a site to cross it off. Spy — identify which one matches the clues.
+            </div>
+          </details>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+</div><!-- #app -->
+
+<!-- ===================== OVERLAYS ===================== -->
+
+<!-- Loading -->
+<div id="overlay-loading" class="overlay">
+  <div class="spinner-box">
+    <div class="spinner"></div>
+    <div id="loading-msg" class="mono" style="font-size:11px;letter-spacing:.22em;color:var(--ink-mute);margin-top:14px;">CONNECTING…</div>
+  </div>
+</div>
+
+<!-- Role Card -->
+<div id="overlay-role" class="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="label">▸ Encrypted Dossier</span>
+      <button class="modal-close" data-overlay="overlay-role" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="reveal">
+        <div>
+          <div id="reveal-seat" class="reveal-seat"></div>
+          <h2 id="reveal-name" class="reveal-name"></h2>
+          <p class="reveal-prompt">Hold the device privately. Memorize your dossier, then close.</p>
+        </div>
+        <div id="reveal-card" class="reveal-card">
+          <div class="seal">
+            <div class="lock">◇◆◇</div>
+            <div>Classified · Tap to read</div>
+          </div>
+          <div id="reveal-content" class="reveal-content"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;">EYES&nbsp;ONLY</span>
+      <button id="reveal-toggle" class="btn btn-primary">Tap to reveal identity</button>
+    </div>
+  </div>
+</div>
+
+<!-- Accusation -->
+<div id="overlay-accuse" class="overlay">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <span class="label">▸ Accusation</span>
+      <button class="modal-close" data-overlay="overlay-accuse" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="accuse-body">
+      <!-- filled by JS depending on state: picker or voting view -->
+    </div>
+    <div class="modal-foot" id="accuse-foot"></div>
+  </div>
+</div>
+
+<!-- Spy Location Guess -->
+<div id="overlay-guess" class="overlay">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <span class="label">▸ Spy Declaration</span>
+      <button class="modal-close" data-overlay="overlay-guess" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-blurb">Commit to a location. Correct guess wins the round for the spy.</p>
+      <div id="guess-grid" class="loc-grid"></div>
+    </div>
+    <div class="modal-foot">
+      <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;">ONE&nbsp;ATTEMPT</span>
+      <button id="guess-submit" class="btn btn-primary" disabled>Commit Guess →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Result -->
+<div id="overlay-result" class="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="label">▸ Round Resolved</span>
+      <button class="modal-close" data-overlay="overlay-result" aria-label="Close">✕</button>
+    </div>
+    <div id="result-body" class="modal-body"></div>
+    <div class="modal-foot">
+      <button id="result-lobby" class="btn btn-ghost">Return to Lobby</button>
+      <button id="result-next" class="btn btn-primary host-only">New Round →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
