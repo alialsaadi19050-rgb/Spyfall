@@ -91,6 +91,7 @@ const TRANSLATIONS = {
     err_room_not_found:    "Room not found or game already started",
     err_room_full:         "Room is full",
     err_already_in_room:   "You are already in this room",
+    err_join_failed:       "Couldn't join the room — please try again",
 
     // Player badges
     badge_host:            "HOST",
@@ -249,6 +250,7 @@ const TRANSLATIONS = {
     err_room_not_found:    "Rum hittades inte eller spelet har redan börjat",
     err_room_full:         "Rummet är fullt",
     err_already_in_room:   "Du är redan i det här rummet",
+    err_join_failed:       "Kunde inte gå med i rummet — försök igen",
     badge_host:            "VÄRD",
     badge_you:             "DU",
     badge_agent:           "AGENT",
@@ -385,6 +387,7 @@ const TRANSLATIONS = {
     err_room_not_found:    "الغرفة غير موجودة أو اللعبة بدأت بالفعل",
     err_room_full:         "الغرفة ممتلئة",
     err_already_in_room:   "أنت موجود بالفعل في هذه الغرفة",
+    err_join_failed:       "تعذّر الانضمام إلى الغرفة — حاول مرة أخرى",
     badge_host:            "مضيف",
     badge_you:             "أنت",
     badge_agent:           "عميل",

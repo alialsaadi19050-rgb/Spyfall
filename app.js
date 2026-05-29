@@ -208,39 +208,86 @@ async function createRoom(nickname) {
 async function joinRoom(code, nickname) {
   showLoading(t("loading_joining"));
   try {
-    const { data: room, error: rErr } = await S.sb
+    // Find the room by code regardless of state (so we can rejoin a game in progress)
+    const { data: room } = await S.sb
       .from("rooms")
       .select("*")
       .eq("room_code", code.toUpperCase())
-      .eq("game_state", "lobby")
-      .single();
-    if (rErr || !room) throw new Error(t("err_room_not_found"));
+      .maybeSingle();
+    if (!room) throw new Error(t("err_room_not_found"));
 
-    if (S.players.length >= 8) throw new Error(t("err_room_full"));
-
-    const { data: player, error: pErr } = await S.sb
+    // Already have a player row in this room? Reuse it (graceful rejoin).
+    const { data: existing } = await S.sb
       .from("players")
-      .insert({ user_id: S.uid, room_id: room.id, nickname })
-      .select()
-      .single();
-    if (pErr) {
-      if (pErr.code === "23505") throw new Error(t("err_already_in_room"));
-      throw pErr;
+      .select("*")
+      .eq("room_id", room.id)
+      .eq("user_id", S.uid)
+      .maybeSingle();
+
+    let player = existing;
+
+    if (player) {
+      // Refresh nickname if it changed, keep the same row
+      if (nickname && nickname !== player.nickname) {
+        const { data: upd } = await S.sb
+          .from("players").update({ nickname }).eq("id", player.id).select().single();
+        if (upd) player = upd;
+      }
+    } else {
+      // New player — only allowed while the room is still in the lobby
+      if (room.game_state !== "lobby") throw new Error(t("err_room_not_found"));
+
+      const { count } = await S.sb
+        .from("players").select("id", { count: "exact", head: true }).eq("room_id", room.id);
+      if ((count ?? 0) >= 8) throw new Error(t("err_room_full"));
+
+      const { data: inserted, error: pErr } = await S.sb
+        .from("players")
+        .insert({ user_id: S.uid, room_id: room.id, nickname })
+        .select()
+        .single();
+      if (pErr) {
+        // Race: row got created between our check and insert → fetch & reuse
+        if (pErr.code === "23505") {
+          const { data: row } = await S.sb
+            .from("players").select("*").eq("room_id", room.id).eq("user_id", S.uid).maybeSingle();
+          if (row) { player = row; }
+          else throw new Error(t("err_already_in_room"));
+        } else {
+          throw new Error(t("err_join_failed"));
+        }
+      } else {
+        player = inserted;
+      }
     }
 
     S.room   = room;
     S.me     = player;
-    S.isHost = false;
+    S.isHost = player.is_host;
     localStorage.setItem("dd_room_id", room.id);
 
     await fetchPlayers();
     subscribeToRoom();
-    renderLobby();
-    showScreen("lobby");
+    enterRoomState(room);
   } catch (e) {
     toast("Error: " + e.message);
   } finally {
     hideLoading();
+  }
+}
+
+// Show the correct screen for whatever state the room is currently in.
+async function enterRoomState(room) {
+  if (room.game_state === "lobby") {
+    renderLobby();
+    showScreen("lobby");
+  } else {
+    await fetchSecret();
+    renderGame();
+    showScreen("game");
+    updateTimerFromRoom(room);
+    if (room.game_state === "voting") { renderAccuseVoting(); openOverlay("overlay-accuse"); }
+    if (room.game_state === "ended" && room.last_result) showResult(room.last_result);
   }
 }
 
@@ -268,18 +315,7 @@ async function rejoinRoom(roomId) {
 
   await fetchPlayers();
   subscribeToRoom();
-
-  if (room.game_state === "lobby") {
-    renderLobby();
-    showScreen("lobby");
-  } else if (room.game_state !== "lobby") {
-    await fetchSecret();
-    renderGame();
-    showScreen("game");
-    updateTimerFromRoom(room);
-    if (room.game_state === "voting") renderAccuseVoting();
-    if (room.game_state === "ended" && room.last_result) showResult(room.last_result);
-  }
+  await enterRoomState(room);
 }
 
 // ================================================================
@@ -293,7 +329,8 @@ async function leaveRoom() {
   }
   S.room = null; S.me = null; S.players = []; S.secret = null; S.isHost = false;
   S.crossedLocs = new Set(); S.allLocationNames = [];
-  clearInterval(S.heartbeatInterval); S.heartbeatInterval = null;
+  // NOTE: leave the heartbeat interval running — it no-ops when S.me/S.room are
+  // null, and is reused if the player joins another room this session.
   localStorage.removeItem("dd_room_id");
   showScreen("home");
 }
