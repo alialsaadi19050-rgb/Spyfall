@@ -1124,6 +1124,17 @@ h1 .accent { color: var(--crimson); font-style: italic; }
 :root[lang="ar"] {
   --font-display: "Cairo", "Space Grotesk", sans-serif;
   --font-body:    "Cairo", "Space Grotesk", sans-serif;
+  /* JetBrains Mono has no Arabic glyphs → falls back to a disconnected
+     system font. Route mono text through Cairo so letters still join. */
+  --font-mono:    "Cairo", "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* In Arabic, letter-spacing forces a gap between every glyph, which
+   severs the cursive joins. Force normal spacing + disable uppercase
+   (Arabic is unicase) so the script renders connected. */
+:root[lang="ar"] * {
+  letter-spacing: normal !important;
+  text-transform: none !important;
 }
 
 /* ── RTL layout fixes ────────────────────────────────────── */
