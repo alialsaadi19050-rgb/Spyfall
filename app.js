@@ -142,7 +142,7 @@ async function boot() {
   // Restore room from localStorage if we were previously in one
   const saved = localStorage.getItem("dd_room_id");
   if (saved) {
-    showLoading("RECONNECTING…");
+    showLoading(t("loading_reconnecting"));
     try {
       await rejoinRoom(saved);
     } catch {
@@ -163,7 +163,7 @@ async function boot() {
 // ROOM — CREATE
 // ================================================================
 async function createRoom(nickname) {
-  showLoading("CREATING ROOM…");
+  showLoading(t("loading_creating"));
   try {
     // Generate a unique code via DB function
     const { data: code, error: cErr } = await S.sb.rpc("generate_room_code");
@@ -205,7 +205,7 @@ async function createRoom(nickname) {
 // ROOM — JOIN
 // ================================================================
 async function joinRoom(code, nickname) {
-  showLoading("JOINING ROOM…");
+  showLoading(t("loading_joining"));
   try {
     const { data: room, error: rErr } = await S.sb
       .from("rooms")
@@ -213,9 +213,9 @@ async function joinRoom(code, nickname) {
       .eq("room_code", code.toUpperCase())
       .eq("game_state", "lobby")
       .single();
-    if (rErr || !room) throw new Error("Room not found or game already started");
+    if (rErr || !room) throw new Error(t("err_room_not_found"));
 
-    if (S.players.length >= 8) throw new Error("Room is full");
+    if (S.players.length >= 8) throw new Error(t("err_room_full"));
 
     const { data: player, error: pErr } = await S.sb
       .from("players")
@@ -223,7 +223,7 @@ async function joinRoom(code, nickname) {
       .select()
       .single();
     if (pErr) {
-      if (pErr.code === "23505") throw new Error("You are already in this room");
+      if (pErr.code === "23505") throw new Error(t("err_already_in_room"));
       throw pErr;
     }
 
@@ -402,7 +402,7 @@ function handleRoomUpdate(room) {
       fetchSecret().then(() => {
         renderGame();
         showScreen("game");
-        toast("Briefing complete · Check your card");
+        toast(t("toast_briefing"));
       });
     } else {
       // Continuing game (e.g. accusation cancelled)
@@ -467,7 +467,7 @@ function updateTimerFromRoom(room) {
       stopTimer();
       playSting();
       haptic([100, 50, 100, 50, 200]);
-      toast("Time's up · Call an accusation");
+      toast(t("toast_times_up"));
     }
   }, 500);
 }
@@ -490,7 +490,7 @@ function updateTimerPlayBtn(running) {
 // GAME ACTIONS  (host-gated RPCs)
 // ================================================================
 async function startGame() {
-  showLoading("BRIEFING OPERATIVES…");
+  showLoading(t("loading_briefing"));
   const { error } = await S.sb.rpc("start_game", { p_room_id: S.room.id });
   hideLoading();
   if (error) { toast("Error: " + error.message); return; }
@@ -533,7 +533,7 @@ async function castVote(vote) {
 }
 
 async function confirmElimination() {
-  showLoading("RESOLVING…");
+  showLoading(t("loading_resolving"));
   const { data, error } = await S.sb.rpc("confirm_elimination", { p_room_id: S.room.id });
   hideLoading();
   if (error) { toast("Error: " + error.message); return; }
@@ -546,7 +546,7 @@ async function confirmElimination() {
 }
 
 async function spyDeclare(locationName) {
-  showLoading("TRANSMITTING DECLARATION…");
+  showLoading(t("loading_transmitting"));
   const { error } = await S.sb.rpc("spy_declare_location", {
     p_room_id:       S.room.id,
     p_location_name: locationName
@@ -587,10 +587,10 @@ function renderScore() {
     $("#lobby-player-list")?.parentElement?.appendChild(el);
   }
   el.innerHTML = (civ + spy) === 0 ? "" :
-    `<span class="score-label">Score</span>
-     <span class="score-civ">Civilians <b>${civ}</b></span>
+    `<span class="score-label">${t("score_label")}</span>
+     <span class="score-civ">${t("score_civilians")} <b>${civ}</b></span>
      <span class="score-sep">·</span>
-     <span class="score-spy">Spy <b>${spy}</b></span>`;
+     <span class="score-spy">${t("score_spy")} <b>${spy}</b></span>`;
 }
 
 function renderSettings() {
@@ -606,15 +606,15 @@ function renderSettings() {
   const spyN = S.room.spy_count ?? 1;
 
   const timerCards = [
-    { val: 300, code: "T01", name: "5 Minutes",  desc: "Fast pace · High pressure on everyone." },
-    { val: 480, code: "T02", name: "8 Minutes",  desc: "Standard mission length. Balanced." },
-    { val: 600, code: "T03", name: "10 Minutes", desc: "Extended interrogation time." },
-    { val: 900, code: "T04", name: "15 Minutes", desc: "Long operation · Deep cover play." },
+    { val: 300, code: "T01", nk: "t01_name", dk: "t01_desc" },
+    { val: 480, code: "T02", nk: "t02_name", dk: "t02_desc" },
+    { val: 600, code: "T03", nk: "t03_name", dk: "t03_desc" },
+    { val: 900, code: "T04", nk: "t04_name", dk: "t04_desc" },
   ];
 
   const spyCards = [
-    { val: 1, code: "S01", name: "1 Spy",   desc: "One infiltrator. Classic deduction." },
-    { val: 2, code: "S02", name: "2 Spies", desc: "Two operatives. Double the deception." },
+    { val: 1, code: "S01", nk: "s01_name", dk: "s01_desc" },
+    { val: 2, code: "S02", nk: "s02_name", dk: "s02_desc" },
   ];
 
   const cardHtml = (cards, dataAttr, selectedVal) => cards.map(c => `
@@ -623,19 +623,19 @@ function renderSettings() {
             ${!S.isHost ? "disabled" : ""}>
       <span class="mode-check"></span>
       <span class="mode-num">${c.code}</span>
-      <span class="mode-name">${c.name}</span>
-      <span class="mode-desc">${c.desc}</span>
+      <span class="mode-name">${t(c.nk)}</span>
+      <span class="mode-desc">${t(c.dk)}</span>
     </button>
   `).join("");
 
   panel.innerHTML = `
     <div class="panel-head">
-      <span class="eyebrow red">▸ Round Settings</span>
-      <span class="meta">${S.isHost ? "Host controls" : ""}</span>
+      <span class="eyebrow red">${t("settings_title")}</span>
+      <span class="meta">${S.isHost ? t("settings_host_ctrl") : ""}</span>
     </div>
-    <div class="settings-section-label">Timer</div>
+    <div class="settings-section-label">${t("settings_timer")}</div>
     <div class="mode-grid" id="dur-grid">${cardHtml(timerCards, "dur", dur)}</div>
-    <div class="settings-section-label" style="margin-top:1px;">Spies</div>
+    <div class="settings-section-label" style="margin-top:1px;">${t("settings_spies")}</div>
     <div class="mode-grid mode-grid-half" id="spy-grid">${cardHtml(spyCards, "spy", spyN)}</div>
   `;
 
@@ -668,13 +668,14 @@ function renderModeGrid() {
             ${!S.isHost ? "disabled" : ""}>
       <span class="mode-check"></span>
       <span class="mode-num">M0${i + 1}</span>
-      <span class="mode-name">${m.name}</span>
-      <span class="mode-desc">${m.desc}</span>
+      <span class="mode-name">${t("m0"+(i+1)+"_name")}</span>
+      <span class="mode-desc">${t("m0"+(i+1)+"_desc")}</span>
     </button>
   `).join("");
 
   if (!S.isHost) {
-    $("#mode-panel-meta").textContent = GAME_MODES.find(m => m.id === S.room.selected_mode)?.name || "";
+    const idx = GAME_MODES.findIndex(m => m.id === S.room.selected_mode);
+    $("#mode-panel-meta").textContent = idx >= 0 ? t(`m0${idx+1}_name`) : "";
     return;
   }
 
@@ -702,9 +703,9 @@ function renderLobbyPlayerList() {
     <div class="lobby-player-row">
       <span class="seat-color" style="background:${color}"></span>
       <span class="seat">S${String(i + 1).padStart(2,"0")}</span>
-      <span class="name ${offline ? "is-offline" : ""}">${esc(p.nickname)}${offline ? " <span class='offline-tag'>OFFLINE</span>" : ""}</span>
+      <span class="name ${offline ? "is-offline" : ""}">${esc(p.nickname)}${offline ? ` <span class='offline-tag'>${t("badge_offline")}</span>` : ""}</span>
       <span class="badge ${p.is_host ? "host" : ""} ${p.id === S.me?.id ? "you" : ""}">
-        ${p.is_host ? "HOST" : p.id === S.me?.id ? "YOU" : "AGENT"}
+        ${p.is_host ? t("badge_host") : p.id === S.me?.id ? t("badge_you") : t("badge_agent")}
       </span>
     </div>
   `}).join("");
@@ -712,9 +713,7 @@ function renderLobbyPlayerList() {
   const n = S.players.length;
   const ready = n >= 4;
   $("#lobby-count").textContent = `${n} / 8`;
-  $("#lobby-status").textContent = ready
-    ? `${n} operative${n !== 1 ? "s" : ""} ready · Begin when all have joined`
-    : `Waiting for ${4 - n} more operative${4 - n !== 1 ? "s" : ""}…`;
+  $("#lobby-status").textContent = ready ? lobbyReadyStr(n) : lobbyWaitStr(4 - n);
   const startBtn = $("#start-btn");
   startBtn.disabled = !ready;
 }
@@ -757,10 +756,10 @@ function renderPlayerGrid() {
       <div class="pcard ${cls}" style="--player-color:${color}">
         <div class="pcard-head">
           <span class="pcard-seat" style="color:${color}">S${String(i + 1).padStart(2,"0")}</span>
-          <span class="pcard-status"><span class="dot" style="background:${offline ? "#888" : color}"></span>${isMe ? "YOU" : offline ? "OFFLINE" : "ACTIVE"}</span>
+          <span class="pcard-status"><span class="dot" style="background:${offline ? "#888" : color}"></span>${isMe ? t("pcard_you") : offline ? t("pcard_offline") : t("pcard_active")}</span>
         </div>
         <div class="pcard-name">${esc(p.nickname)}</div>
-        <div class="pcard-foot">${isAccused ? "⚠ ACCUSED" : p.is_eliminated ? "✕ OUT" : offline ? "⚡ Reconnecting…" : "In field"}</div>
+        <div class="pcard-foot">${isAccused ? t("pcard_accused") : p.is_eliminated ? t("pcard_out") : offline ? t("pcard_reconnecting") : t("pcard_in_field")}</div>
       </div>
     `;
   }).join("");
@@ -774,7 +773,7 @@ function renderCheatSheet() {
   const names = S.allLocationNames.length > 0 ? S.allLocationNames : [];
   // Update the "N sites" label in the summary
   const eyebrow = list.closest(".cheat-details")?.querySelector(".eyebrow");
-  if (eyebrow && names.length > 0) eyebrow.textContent = `${names.length} sites`;
+  if (eyebrow && names.length > 0) eyebrow.textContent = `${names.length} ${t("sites_suffix")}`;
   list.innerHTML = names.map((name, i) => `
     <button class="cheat-item ${S.crossedLocs.has(name) ? "is-crossed" : ""}" data-loc="${esc(name)}">
       <span>${esc(name)}</span>
@@ -796,9 +795,9 @@ function renderCheatSheet() {
 // ROLE REVEAL MODAL
 // ================================================================
 function openRoleModal() {
-  if (!S.secret) { toast("Your card is not ready yet"); return; }
+  if (!S.secret) { toast(t("toast_card_not_ready")); return; }
   const seat = S.players.findIndex(p => p.id === S.me.id) + 1;
-  $("#reveal-seat").textContent = `Seat S${String(seat).padStart(2,"0")} · Eyes only`;
+  $("#reveal-seat").textContent = `S${String(seat).padStart(2,"0")} · ${t("seat_eyes_only")}`;
   $("#reveal-name").textContent = S.me.nickname;
   S.revealShown = false;
   renderRoleCard();
@@ -812,7 +811,7 @@ function renderRoleCard() {
 
   const wasHidden = !card.classList.contains("is-revealed");
   card.classList.toggle("is-revealed", S.revealShown);
-  $("#reveal-toggle").textContent = S.revealShown ? "Hide · pass device" : "Tap to reveal identity";
+  $("#reveal-toggle").textContent = S.revealShown ? t("hide_pass") : t("tap_reveal");
   if (S.revealShown && wasHidden) haptic([40, 20, 80]);
 
   if (!S.revealShown || !S.secret) { content.innerHTML = ""; return; }
@@ -823,37 +822,37 @@ function renderRoleCard() {
     if (S.room.selected_mode === "decoy" && decoy_locations) {
       const locs = decoy_locations.map(l => `<li>${esc(l)}</li>`).join("");
       content.innerHTML = `
-        <div class="role-line">Identity</div>
-        <div class="role-value spy">YOU ARE THE SPY</div>
-        <div class="role-sub">One of these 4 locations is the real one. Deduce it from the conversation — then guess when ready.</div>
+        <div class="role-line">${t("role_identity")}</div>
+        <div class="role-value spy">${t("role_spy_title")}</div>
+        <div class="role-sub">${t("role_spy_decoy_sub")}</div>
         <ul class="decoy-list">${locs}</ul>
       `;
     } else {
       content.innerHTML = `
-        <div class="role-line">Identity</div>
-        <div class="role-value spy">YOU ARE THE SPY</div>
-        <div class="role-sub">Blend in. Listen to the clues. Guess the location before the others identify you.</div>
+        <div class="role-line">${t("role_identity")}</div>
+        <div class="role-value spy">${t("role_spy_title")}</div>
+        <div class="role-sub">${t("role_spy_sub")}</div>
         <div class="role-meta single">
           <div class="role-meta-cell">
-            <span class="k">Co-spies</span>
-            <span class="v">${S.room.selected_mode === "double" ? "None known to you" : "None"}</span>
+            <span class="k">${t("role_cospies")}</span>
+            <span class="v">${S.room.selected_mode === "double" ? t("role_cospies_double") : t("role_cospies_none")}</span>
           </div>
         </div>
       `;
     }
   } else if (role === "double_agent") {
     content.innerHTML = `
-      <div class="role-line">Identity</div>
-      <div class="role-value double-agent">DOUBLE AGENT</div>
-      <div class="role-sub">You know the location. Act like a civilian — but feed vague answers to protect the hidden spy.</div>
+      <div class="role-line">${t("role_identity")}</div>
+      <div class="role-value double-agent">${t("role_double_title")}</div>
+      <div class="role-sub">${t("role_double_sub")}</div>
       <div class="role-meta">
         <div class="role-meta-cell">
-          <span class="k">True Location</span>
+          <span class="k">${t("role_true_loc")}</span>
           <span class="v">${esc(location_name)}</span>
         </div>
         ${job ? `
         <div class="role-meta-cell">
-          <span class="k">Your Cover</span>
+          <span class="k">${t("role_cover")}</span>
           <span class="v" style="color:var(--signal)">${esc(job)}</span>
         </div>` : ""}
       </div>
@@ -861,18 +860,18 @@ function renderRoleCard() {
   } else {
     // Civilian
     content.innerHTML = `
-      <div class="role-line">Location</div>
+      <div class="role-line">${t("role_location")}</div>
       <div class="role-value">${esc(location_name)}</div>
-      <div class="role-sub">Expose the spy without giving too much away. Watch for hesitation.</div>
+      <div class="role-sub">${t("role_civ_sub")}</div>
       <div class="role-meta">
         ${job ? `
         <div class="role-meta-cell">
-          <span class="k">Your Role</span>
+          <span class="k">${t("role_your_role")}</span>
           <span class="v" style="color:var(--signal)">${esc(job)}</span>
         </div>` : ""}
         ${condition ? `
         <div class="role-meta-cell">
-          <span class="k">Secret Condition</span>
+          <span class="k">${t("role_secret_cond")}</span>
           <span class="v" style="color:var(--amber)">${esc(condition)}</span>
         </div>` : ""}
       </div>
@@ -900,7 +899,7 @@ function renderAccusePicker() {
   const eligible = S.players.filter(p => !p.is_eliminated && p.id !== S.me.id);
 
   body.innerHTML = `
-    <p class="modal-blurb">Select the operative you suspect. The host will confirm or cancel the accusation.</p>
+    <p class="modal-blurb">${t("accuse_blurb")}</p>
     <div class="vote-grid" id="accuse-grid">
       ${eligible.map((p, i) => `
         <button class="vote-cell" data-id="${p.id}">
@@ -912,8 +911,8 @@ function renderAccusePicker() {
   `;
 
   foot.innerHTML = `
-    <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;">SELECT TARGET</span>
-    <button id="accuse-submit" class="btn btn-primary" disabled>Accuse →</button>
+    <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;">${t("accuse_select")}</span>
+    <button id="accuse-submit" class="btn btn-primary" disabled>${t("accuse_submit")}</button>
   `;
 
   $("#accuse-grid").onclick = (e) => {
@@ -948,37 +947,37 @@ function renderAccuseVoting() {
 
   body.innerHTML = `
     <div class="accusation-banner">
-      <div class="label">▸ Active Accusation</div>
+      <div class="label">${t("accuse_active")}</div>
       <div class="accused-name">${esc(accused.nickname)}</div>
-      <div class="sub">Majority decides · all active players vote</div>
+      <div class="sub">${t("accuse_majority")}</div>
 
       <div class="vote-tally">
         <div class="tally-cell tally-yes">
           <span class="tally-num">${yesCount}</span>
-          <span class="tally-label">GUILTY</span>
+          <span class="tally-label">${t("guilty")}</span>
         </div>
         <div class="tally-cell tally-no">
           <span class="tally-num">${noCount}</span>
-          <span class="tally-label">INNOCENT</span>
+          <span class="tally-label">${t("innocent")}</span>
         </div>
         <div class="tally-cell tally-pending">
           <span class="tally-num">${pending}</span>
-          <span class="tally-label">PENDING</span>
+          <span class="tally-label">${t("pending")}</span>
         </div>
       </div>
 
       ${iAccused ? `
-        <div class="vote-waiting">You are accused — waiting for the verdict…</div>
+        <div class="vote-waiting">${t("you_are_accused")}</div>
       ` : myVote === undefined ? `
         <div class="vote-buttons">
-          <button id="btn-vote-guilty" class="btn btn-danger">⚑ Guilty</button>
-          <button id="btn-vote-innocent" class="btn btn-ghost">✓ Innocent</button>
+          <button id="btn-vote-guilty" class="btn btn-danger">${t("vote_guilty")}</button>
+          <button id="btn-vote-innocent" class="btn btn-ghost">${t("vote_innocent")}</button>
         </div>
       ` : `
-        <div class="vote-cast">You voted: <strong>${myVote ? "GUILTY" : "INNOCENT"}</strong></div>
+        <div class="vote-cast">${t("you_voted")} <strong>${myVote ? t("guilty") : t("innocent")}</strong></div>
       `}
 
-      ${S.isHost ? `<button id="btn-cancel-accuse" class="btn btn-ghost btn-sm" style="margin-top:14px;">✕ Abort accusation</button>` : ""}
+      ${S.isHost ? `<button id="btn-cancel-accuse" class="btn btn-ghost btn-sm" style="margin-top:14px;">${t("abort_accuse")}</button>` : ""}
     </div>
   `;
   foot.innerHTML = "";
@@ -998,7 +997,7 @@ function renderAccuseVoting() {
 async function openGuessModal() {
   // Only the spy can declare a location
   if (S.secret?.role !== "spy") {
-    toast("Only the spy can declare a location");
+    toast(t("toast_spy_only"));
     return;
   }
 
@@ -1011,12 +1010,12 @@ async function openGuessModal() {
     locations = S.secret.decoy_locations;
   } else {
     // All other modes: fetch 15 locations from server (real location + 14 random)
-    showLoading("LOADING LOCATIONS…");
+    showLoading(t("loading_locations"));
     const { data, error } = await S.sb.rpc("get_spy_guess_locations", { p_room_id: S.room.id });
     hideLoading();
     if (error) { toast("Error: " + error.message); return; }
     if (!data || !Array.isArray(data) || data.length === 0) {
-      toast("Could not load locations — try again");
+      toast(t("toast_loc_error"));
       return;
     }
     locations = data;
@@ -1054,15 +1053,15 @@ function showResult(result) {
       <div class="detail">${esc(result.detail)}</div>
       <div class="result-breakdown">
         <div>
-          <div class="k">Winner</div>
+          <div class="k">${t("winner_label")}</div>
           <div class="v" style="color:${result.cls === 'win' ? 'var(--signal)' : 'var(--crimson)'}">${esc(result.winner)}</div>
         </div>
         <div>
-          <div class="k">The Spy</div>
+          <div class="k">${t("spy_label")}</div>
           <div class="v">${esc(result.spies || "—")}</div>
         </div>
         <div style="grid-column:1/-1">
-          <div class="k">True Location</div>
+          <div class="k">${t("true_loc_label")}</div>
           <div class="v">${esc(result.location || "—")}</div>
         </div>
       </div>
@@ -1108,7 +1107,7 @@ function bind() {
     if (e.target.matches("#copy-code")) {
       const code = S.room?.room_code || "";
       const link = `${location.origin}${location.pathname}?room=${code}`;
-      navigator.clipboard?.writeText(link).then(() => toast("Join link copied!"));
+      navigator.clipboard?.writeText(link).then(() => toast(t("toast_link_copied")));
     }
     if (e.target.matches("#leave-lobby"))  leaveRoom();
     if (e.target.matches("#start-btn"))    startGame();
@@ -1119,7 +1118,7 @@ function bind() {
     if (e.target.closest("#timer-play"))  timerToggle();
     if (e.target.closest("#timer-reset")) timerReset();
     if (e.target.matches("#back-to-lobby")) {
-      if (confirm("Leave the game? You will exit the room.")) leaveRoom();
+      if (confirm(t("confirm_leave"))) leaveRoom();
     }
   });
 

@@ -12,10 +12,17 @@
 <script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1779900778" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=1780087395" />
 </head>
 <body>
+
+<!-- Language picker — fixed, always visible -->
+<div id="lang-picker" class="lang-picker">
+  <button class="lang-btn is-active" data-lang="en">EN</button>
+  <button class="lang-btn" data-lang="sv">SV</button>
+  <button class="lang-btn" data-lang="ar">عر</button>
+</div>
 
 <div id="app">
 
@@ -26,20 +33,20 @@
         <div class="brand-mark"></div>
         <div class="brand-text">
           <div class="brand-name">DEAD&nbsp;DROP</div>
-          <div class="brand-sub">Classified Field Protocol · v2.0</div>
+          <div class="brand-sub" data-i18n="brand_sub">Classified Field Protocol · v2.0</div>
         </div>
       </div>
       <div class="frame-status">
         <span class="dot"></span>
-        <span>Secure Channel</span>
+        <span data-i18n="secure_channel">Secure Channel</span>
       </div>
     </header>
 
     <main class="home-body">
       <div class="home-hero">
-        <div class="case-tag"><span class="bar"></span><span>Case File 00 · Briefing Room</span></div>
-        <h1>Find the <span class="accent">spy</span><br/>before they find the location.</h1>
-        <p class="home-blurb">Real-time multiplayer · 4–8 operatives · Each on their own device</p>
+        <div class="case-tag"><span class="bar"></span><span data-i18n="case_file">Case File 00 · Briefing Room</span></div>
+        <h1 data-i18n-html="hero_headline">Find the <span class="accent">spy</span><br/>before they find the location.</h1>
+        <p class="home-blurb" data-i18n="hero_blurb">Real-time multiplayer · 4–8 operatives · Each on their own device</p>
       </div>
 
       <div class="home-panels">
@@ -47,41 +54,41 @@
         <!-- Create Room -->
         <div class="panel">
           <div class="panel-head">
-            <span class="eyebrow red">▸ Deploy as Host</span>
-            <span class="meta">Step 01</span>
+            <span class="eyebrow red" data-i18n="deploy_host">▸ Deploy as Host</span>
+            <span class="meta" data-i18n="step_01">Step 01</span>
           </div>
           <div class="panel-body">
             <div class="field">
-              <label class="field-label" for="create-name">Agent codename</label>
-              <input id="create-name" class="text-input" type="text" placeholder="Enter your codename…" maxlength="18" autocomplete="off" />
+              <label class="field-label" for="create-name" data-i18n="codename_label">Agent codename</label>
+              <input id="create-name" class="text-input" type="text" data-i18n-ph="codename_ph" placeholder="Enter your codename…" maxlength="18" autocomplete="off" />
             </div>
             <button id="create-btn" class="btn btn-primary" disabled>
-              <span>Create Room</span><span aria-hidden="true">→</span>
+              <span data-i18n="create_room_btn">Create Room</span><span aria-hidden="true">→</span>
             </button>
           </div>
         </div>
 
-        <div class="home-divider"><span>OR</span></div>
+        <div class="home-divider"><span data-i18n="or_divider">OR</span></div>
 
         <!-- Join Room -->
         <div class="panel">
           <div class="panel-head">
-            <span class="eyebrow red">▸ Enter Field</span>
-            <span class="meta">Step 01</span>
+            <span class="eyebrow red" data-i18n="enter_field">▸ Enter Field</span>
+            <span class="meta" data-i18n="step_01">Step 01</span>
           </div>
           <div class="panel-body">
             <div class="field">
-              <label class="field-label" for="join-code">Room code</label>
+              <label class="field-label" for="join-code" data-i18n="room_code_label">Room code</label>
               <input id="join-code" class="text-input text-input-code" type="text"
                 placeholder="ABCD" maxlength="4" autocomplete="off"
                 style="text-transform:uppercase;letter-spacing:.3em;font-size:22px;" />
             </div>
             <div class="field">
-              <label class="field-label" for="join-name">Agent codename</label>
-              <input id="join-name" class="text-input" type="text" placeholder="Enter your codename…" maxlength="18" autocomplete="off" />
+              <label class="field-label" for="join-name" data-i18n="codename_label">Agent codename</label>
+              <input id="join-name" class="text-input" type="text" data-i18n-ph="codename_ph" placeholder="Enter your codename…" maxlength="18" autocomplete="off" />
             </div>
             <button id="join-btn" class="btn btn-primary" disabled>
-              <span>Join Room</span><span aria-hidden="true">→</span>
+              <span data-i18n="join_room_btn">Join Room</span><span aria-hidden="true">→</span>
             </button>
           </div>
         </div>
@@ -97,15 +104,15 @@
         <div class="brand-mark"></div>
         <div class="brand-text">
           <div class="brand-name">DEAD&nbsp;DROP</div>
-          <div class="brand-sub">Briefing Room</div>
+          <div class="brand-sub" data-i18n="briefing_room">Briefing Room</div>
         </div>
       </div>
       <div class="room-code-badge">
-        <span class="k">ROOM</span>
+        <span class="k" data-i18n="room_label">ROOM</span>
         <span id="lobby-code" class="v">····</span>
         <button id="copy-code" class="btn-copy" title="Copy code">⎘</button>
       </div>
-      <button id="leave-lobby" class="btn btn-ghost">← Leave</button>
+      <button id="leave-lobby" class="btn btn-ghost" data-i18n="leave_btn">← Leave</button>
     </header>
 
     <main class="lobby-body">
@@ -113,8 +120,8 @@
       <!-- Mode picker (visible + editable only by host) -->
       <div class="panel" id="mode-panel">
         <div class="panel-head">
-          <span class="eyebrow red">▸ Operation Parameters</span>
-          <span class="meta" id="mode-panel-meta">Host selects</span>
+          <span class="eyebrow red" data-i18n="op_params">▸ Operation Parameters</span>
+          <span class="meta" id="mode-panel-meta" data-i18n="host_selects">Host selects</span>
         </div>
         <div id="mode-grid" class="mode-grid"></div>
       </div>
@@ -122,14 +129,14 @@
       <!-- Roster -->
       <div class="panel roster-panel">
         <div class="panel-head">
-          <span class="eyebrow red">▸ Field Roster</span>
+          <span class="eyebrow red" data-i18n="field_roster">▸ Field Roster</span>
           <span id="lobby-count" class="meta">0 / 8</span>
         </div>
         <div id="lobby-player-list" class="lobby-player-list"></div>
         <div class="lobby-footer">
-          <span id="lobby-status" class="mono lobby-status-text">Waiting for operatives…</span>
+          <span id="lobby-status" class="mono lobby-status-text" data-i18n="waiting_operatives">Waiting for operatives…</span>
           <button id="start-btn" class="btn btn-primary host-only" disabled>
-            Begin Mission →
+            <span data-i18n="begin_mission">Begin Mission →</span>
           </button>
         </div>
       </div>
@@ -144,15 +151,15 @@
       <header class="topbar">
         <div class="topbar-left">
           <div class="room-code-badge small">
-            <span class="k">ROOM</span>
+            <span class="k" data-i18n="room_label">ROOM</span>
             <span id="game-room-code" class="v">····</span>
           </div>
           <div class="stat">
-            <span class="k">Mode</span>
+            <span class="k" data-i18n="mode_label">Mode</span>
             <span id="stat-mode" class="v red">CLASSIC</span>
           </div>
           <div class="stat">
-            <span class="k">Players</span>
+            <span class="k" data-i18n="players_label">Players</span>
             <span id="stat-players" class="v">6/6</span>
           </div>
         </div>
@@ -175,7 +182,7 @@
         </div>
 
         <div class="topbar-right">
-          <button id="back-to-lobby" class="btn btn-ghost">← Exit</button>
+          <button id="back-to-lobby" class="btn btn-ghost" data-i18n="exit_btn">← Exit</button>
         </div>
       </header>
 
@@ -186,22 +193,22 @@
           <!-- My card button — always at top -->
           <button id="view-card-btn" class="btn-view-card">
             <span class="view-card-icon">◆</span>
-            <span>View My Secret Card</span>
-            <span class="view-card-hint">tap to reveal your dossier</span>
+            <span data-i18n="view_card_label">View My Secret Card</span>
+            <span class="view-card-hint" data-i18n="view_card_hint">tap to reveal your dossier</span>
           </button>
 
           <div class="section-head" style="margin-top:24px;">
             <div>
-              <span class="eyebrow red">▸ Field Operatives</span>
-              <h2>Player Status</h2>
+              <span class="eyebrow red" data-i18n="field_operatives">▸ Field Operatives</span>
+              <h2 data-i18n="player_status">Player Status</h2>
             </div>
-            <span class="hint">Cards sealed · tap to accuse</span>
+            <span class="hint" data-i18n="cards_hint">Cards sealed · tap to accuse</span>
           </div>
           <div id="player-grid" class="player-grid"></div>
 
           <div class="dash-actions">
-            <button id="open-accuse" class="btn">⌖ Accuse Player</button>
-            <button id="open-guess" class="btn">⌬ Declare Location</button>
+            <button id="open-accuse" class="btn"><span data-i18n="accuse_btn">⌖ Accuse Player</span></button>
+            <button id="open-guess" class="btn"><span data-i18n="declare_btn">⌬ Declare Location</span></button>
           </div>
         </section>
 
@@ -210,14 +217,14 @@
           <details class="cheat-details" open>
             <summary class="cheat-summary">
               <span class="cheat-head">
-                <h3>Location Roster</h3>
+                <h3 data-i18n="loc_roster">Location Roster</h3>
                 <span class="eyebrow">10 sites</span>
               </span>
             </summary>
             <div id="cheat-list" class="cheat-list"></div>
             <div class="cheat-note">
-              <strong>// FIELD TIP</strong><br/>
-              Tap a site to cross it off. Spy — identify which one matches the clues.
+              <strong data-i18n="field_tip">// FIELD TIP</strong><br/>
+              <span data-i18n="field_tip_text">Tap a site to cross it off. Spy — identify which one matches the clues.</span>
             </div>
           </details>
         </aside>
@@ -234,7 +241,7 @@
 <div id="overlay-loading" class="overlay">
   <div class="spinner-box">
     <div class="spinner"></div>
-    <div id="loading-msg" class="mono" style="font-size:11px;letter-spacing:.22em;color:var(--ink-mute);margin-top:14px;">CONNECTING…</div>
+    <div id="loading-msg" class="mono" style="font-size:11px;letter-spacing:.22em;color:var(--ink-mute);margin-top:14px;" data-i18n="loading_connecting">CONNECTING…</div>
   </div>
 </div>
 
@@ -242,7 +249,7 @@
 <div id="overlay-role" class="overlay">
   <div class="modal">
     <div class="modal-head">
-      <span class="label">▸ Encrypted Dossier</span>
+      <span class="label" data-i18n="encrypted_dossier">▸ Encrypted Dossier</span>
       <button class="modal-close" data-overlay="overlay-role" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
@@ -250,20 +257,20 @@
         <div>
           <div id="reveal-seat" class="reveal-seat"></div>
           <h2 id="reveal-name" class="reveal-name"></h2>
-          <p class="reveal-prompt">Hold the device privately. Memorize your dossier, then close.</p>
+          <p class="reveal-prompt" data-i18n="hold_privately">Hold the device privately. Memorize your dossier, then close.</p>
         </div>
         <div id="reveal-card" class="reveal-card">
           <div class="seal">
             <div class="lock">◇◆◇</div>
-            <div>Classified · Tap to read</div>
+            <div data-i18n="classified_tap">Classified · Tap to read</div>
           </div>
           <div id="reveal-content" class="reveal-content"></div>
         </div>
       </div>
     </div>
     <div class="modal-foot">
-      <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;">EYES&nbsp;ONLY</span>
-      <button id="reveal-toggle" class="btn btn-primary">Tap to reveal identity</button>
+      <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;" data-i18n="eyes_only">EYES&nbsp;ONLY</span>
+      <button id="reveal-toggle" class="btn btn-primary" data-i18n="tap_reveal">Tap to reveal identity</button>
     </div>
   </div>
 </div>
@@ -272,7 +279,7 @@
 <div id="overlay-accuse" class="overlay">
   <div class="modal modal-wide">
     <div class="modal-head">
-      <span class="label">▸ Accusation</span>
+      <span class="label" data-i18n="accusation_label">▸ Accusation</span>
       <button class="modal-close" data-overlay="overlay-accuse" aria-label="Close">✕</button>
     </div>
     <div class="modal-body" id="accuse-body">
@@ -286,16 +293,16 @@
 <div id="overlay-guess" class="overlay">
   <div class="modal modal-wide">
     <div class="modal-head">
-      <span class="label">▸ Spy Declaration</span>
+      <span class="label" data-i18n="spy_declaration">▸ Spy Declaration</span>
       <button class="modal-close" data-overlay="overlay-guess" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <p class="modal-blurb">Commit to a location. Correct guess wins the round for the spy.</p>
+      <p class="modal-blurb" data-i18n="commit_blurb">Commit to a location. Correct guess wins the round for the spy.</p>
       <div id="guess-grid" class="loc-grid"></div>
     </div>
     <div class="modal-foot">
-      <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;">ONE&nbsp;ATTEMPT</span>
-      <button id="guess-submit" class="btn btn-primary" disabled>Commit Guess →</button>
+      <span class="mono" style="font-size:10px;color:var(--ink-faint);letter-spacing:.2em;" data-i18n="one_attempt">ONE&nbsp;ATTEMPT</span>
+      <button id="guess-submit" class="btn btn-primary" disabled data-i18n="commit_guess_btn">Commit Guess →</button>
     </div>
   </div>
 </div>
@@ -304,13 +311,13 @@
 <div id="overlay-result" class="overlay">
   <div class="modal">
     <div class="modal-head">
-      <span class="label">▸ Round Resolved</span>
+      <span class="label" data-i18n="round_resolved">▸ Round Resolved</span>
       <button class="modal-close" data-overlay="overlay-result" aria-label="Close">✕</button>
     </div>
     <div id="result-body" class="modal-body"></div>
     <div class="modal-foot">
-      <button id="result-lobby" class="btn btn-ghost">Return to Lobby</button>
-      <button id="result-next" class="btn btn-primary host-only">New Round →</button>
+      <button id="result-lobby" class="btn btn-ghost" data-i18n="return_lobby_btn">Return to Lobby</button>
+      <button id="result-next" class="btn btn-primary host-only" data-i18n="new_round_btn">New Round →</button>
     </div>
   </div>
 </div>
@@ -319,6 +326,7 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="app.js?v=1779900778"></script>
+<script src="i18n.js?v=1779900778"></script>
+<script src="app.js?v=1780087395"></script>
 </body>
 </html>

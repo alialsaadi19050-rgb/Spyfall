@@ -1086,3 +1086,60 @@ h1 .accent { color: var(--crimson); font-style: italic; }
 }
 
 .btn-sm { padding: 6px 14px; font-size: 11px; }
+
+/* ── Language picker ─────────────────────────────────────── */
+.lang-picker {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 9999;
+  display: flex;
+  gap: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+.lang-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  padding: 4px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.lang-btn:hover { color: var(--ink); }
+.lang-btn.is-active {
+  background: var(--crimson-3);
+  color: var(--ink);
+  border: 1px solid var(--crimson);
+}
+
+/* ── Arabic font override ────────────────────────────────── */
+:root[lang="ar"] {
+  --font-display: "Cairo", "Space Grotesk", sans-serif;
+  --font-body:    "Cairo", "Space Grotesk", sans-serif;
+}
+
+/* ── RTL layout fixes ────────────────────────────────────── */
+[dir="rtl"] .frame         { flex-direction: row-reverse; }
+[dir="rtl"] .brand         { flex-direction: row-reverse; }
+[dir="rtl"] .panel-head    { flex-direction: row-reverse; }
+[dir="rtl"] .topbar-left   { flex-direction: row-reverse; }
+[dir="rtl"] .topbar-right  { order: -1; }
+[dir="rtl"] .lobby-player-row { flex-direction: row-reverse; }
+[dir="rtl"] .pcard-head    { flex-direction: row-reverse; }
+[dir="rtl"] .modal-head    { flex-direction: row-reverse; }
+[dir="rtl"] .modal-foot    { flex-direction: row-reverse; }
+[dir="rtl"] .lobby-footer  { flex-direction: row-reverse; }
+[dir="rtl"] .home-panels   { direction: rtl; }
+[dir="rtl"] .dash-actions  { flex-direction: row-reverse; }
+[dir="rtl"] .cheat-head    { flex-direction: row-reverse; }
+[dir="rtl"] .section-head  { flex-direction: row-reverse; }
+[dir="rtl"] .vote-tally    { flex-direction: row-reverse; }
+[dir="rtl"] .lang-picker   { right: auto; left: 18px; }
