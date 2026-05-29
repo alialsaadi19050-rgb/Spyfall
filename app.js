@@ -115,6 +115,7 @@ function fmtTime(s) {
 
 function applyHostVisibility() {
   $$(".host-only").forEach(el => el.classList.toggle("hide", !S.isHost));
+  $$(".non-host-only").forEach(el => el.classList.toggle("hide", S.isHost));
 }
 
 // ================================================================
@@ -396,6 +397,22 @@ function handleRoomUpdate(room) {
 
   const screen = $(".screen.is-active");
 
+  if (room.game_state === "lobby" && screen?.id !== "screen-lobby") {
+    // Host returned the group to the lobby for a rematch — bring everyone back.
+    closeOverlay("overlay-result");
+    closeOverlay("overlay-accuse");
+    closeOverlay("overlay-guess");
+    closeOverlay("overlay-role");
+    stopTimer();
+    S.secret = null;
+    S.revealShown = false;
+    S.crossedLocs = new Set();
+    renderLobby();
+    showScreen("lobby");
+    toast(t("toast_back_to_lobby"));
+    return;
+  }
+
   if (room.game_state === "playing") {
     // Transition lobby → game
     if (screen?.id === "screen-lobby") {
@@ -562,6 +579,15 @@ async function startNextRound() {
   S.revealShown = false;
   S.crossedLocs = new Set();
   await startGame();
+}
+
+// Host sends the whole group back to the lobby to reconfigure & rematch.
+// Realtime broadcasts game_state='lobby' → every client transitions in handleRoomUpdate.
+async function returnToLobby() {
+  showLoading(t("loading_connecting"));
+  const { error } = await S.sb.rpc("return_to_lobby", { p_room_id: S.room.id });
+  hideLoading();
+  if (error) { toast("Error: " + error.message); return; }
 }
 
 // ================================================================
@@ -1147,7 +1173,8 @@ function bind() {
   // Result actions
   document.addEventListener("click", e => {
     if (e.target.matches("#result-next"))  startNextRound();
-    if (e.target.matches("#result-lobby")) leaveRoom();
+    if (e.target.matches("#result-lobby")) returnToLobby();
+    if (e.target.matches("#result-leave")) leaveRoom();
   });
 
   // Modal close buttons (data-overlay attribute)

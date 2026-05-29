@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=1780087848" />
+<link rel="stylesheet" href="styles.css?v=1780089303" />
 </head>
 <body>
 
@@ -315,8 +315,10 @@
       <button class="modal-close" data-overlay="overlay-result" aria-label="Close">✕</button>
     </div>
     <div id="result-body" class="modal-body"></div>
+    <div id="result-waiting" class="result-waiting non-host-only" data-i18n="waiting_host">Waiting for the host to start the next round…</div>
     <div class="modal-foot">
-      <button id="result-lobby" class="btn btn-ghost" data-i18n="return_lobby_btn">Return to Lobby</button>
+      <button id="result-leave" class="btn btn-ghost" data-i18n="leave_room_btn">Leave Room</button>
+      <button id="result-lobby" class="btn btn-ghost host-only" data-i18n="return_lobby_btn">Return to Lobby</button>
       <button id="result-next" class="btn btn-primary host-only" data-i18n="new_round_btn">New Round →</button>
     </div>
   </div>
@@ -327,6 +329,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="i18n.js?v=1779900778"></script>
-<script src="app.js?v=1780087848"></script>
+<script src="app.js?v=1780089303"></script>
 </body>
 </html>

@@ -916,6 +916,14 @@ h1 .accent { color: var(--crimson); font-style: italic; }
 .result-breakdown > div { background: var(--bg-2); padding: 12px 14px; }
 .result-breakdown .k { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; color: var(--ink-faint); text-transform: uppercase; margin-bottom: 4px; }
 .result-breakdown .v { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.result-waiting {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: var(--ink-faint);
+  padding: 14px 4px 2px;
+}
 
 /* Loading spinner */
 .spinner-box { display: flex; flex-direction: column; align-items: center; gap: 0; }

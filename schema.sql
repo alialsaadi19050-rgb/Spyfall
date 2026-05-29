@@ -528,3 +528,31 @@ BEGIN
   RETURN v_result;
 END;
 $$;
+
+-- RETURN TO LOBBY (host only): send the whole group back to the lobby so the
+-- host can reconfigure mode/settings and start a fresh round — without anyone
+-- having to re-share the room link. Wipes the finished round's secrets.
+CREATE OR REPLACE FUNCTION return_to_lobby(p_room_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT is_room_host(p_room_id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
+
+  -- Clear this round's hidden state
+  DELETE FROM player_secrets
+  WHERE player_id IN (SELECT id FROM players WHERE room_id = p_room_id);
+  DELETE FROM room_secrets WHERE room_id = p_room_id;
+
+  -- Un-eliminate everyone for the next round
+  UPDATE players SET is_eliminated = false WHERE room_id = p_room_id;
+
+  -- Reset the room to a fresh lobby (timer back to 8:00 paused)
+  UPDATE rooms SET
+    game_state             = 'lobby',
+    accused_player_id      = NULL,
+    last_result            = NULL,
+    timer_ends_at          = NULL,
+    timer_paused_remaining = 480,
+    is_timer_paused        = true
+  WHERE id = p_room_id;
+END;
+$$;
